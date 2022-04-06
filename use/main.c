@@ -21,15 +21,8 @@ int main(int argc, char* argv[]) {
 	unsigned int signature = 0xBAD0FACE;
 
 	if (argc > 1) {
-		if (!strcmp(argv[1], "syscall")) {
+		if (!strcmp(argv[1], "0x26")) {
 			__asm {
-				push cc
-				push cc
-				push cc
-				push cc
-				push cc
-				push cc
-				push cc
 				push cc
 				push cc
 				push cc
@@ -39,6 +32,16 @@ int main(int argc, char* argv[]) {
 			AddressSystemCall = (unsigned int)FastSystemCall;
 			SysCall();
 		}
+		//else if (!strcmp(argv[1], "0x33")) {
+		//	__asm {
+		//		push cc
+		//		push cc
+		//		push signature
+		//		mov eax, 0xAD
+		//	}
+		//	AddressSystemCall = (unsigned int)FastSystemCall;
+		//	SysCall();
+		//}
 	}
 
 	return 0;

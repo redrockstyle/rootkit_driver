@@ -18,11 +18,22 @@
     <ClCompile Include="init.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rename_proc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="sources" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="task2.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="rename_proc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cr0.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

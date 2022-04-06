@@ -186,12 +186,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="init.c" />
+    <ClCompile Include="rename_proc.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="sources" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="task2.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cr0.h" />
+    <ClInclude Include="rename_proc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
