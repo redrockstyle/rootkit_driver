@@ -24,10 +24,23 @@ typedef NTSTATUS
 );
 
 #define NUMBER_NT_ACCESS_CHECK_AND_AUDIT_ALARM  0x26 //38
+#define SYSCALL_SIGNATURE  0xBAD0FACE
 
 NTSTATUS DriverEntry(IN PDRIVER_OBJECT dob, IN PUNICODE_STRING rgp);
 VOID DriverUnload(IN PDRIVER_OBJECT dob);
-
+VOID PrintNtAccessCheckAndAuditAlarm(
+    IN  PUNICODE_STRING SubsystemName,
+    IN  PVOID HandleId,
+    IN  PUNICODE_STRING ObjectTypeName,
+    IN  PUNICODE_STRING ObjectName,
+    IN  PSECURITY_DESCRIPTOR SecurityDescriptor,
+    IN  ACCESS_MASK DesiredAccess,
+    IN  PGENERIC_MAPPING GenericMapping,
+    IN  BOOLEAN ObjectCreation,
+    OUT PACCESS_MASK GrantedAccess,
+    OUT PNTSTATUS AccessStatus,
+    OUT PBOOLEAN GenerateOnClose
+);
 NTSTATUS HookNtAccessCheckAndAuditAlarm(
     IN  PUNICODE_STRING SubsystemName,
     IN  PVOID HandleId,
@@ -99,7 +112,7 @@ VOID DriverUnload(IN PDRIVER_OBJECT dob) {
     ULONG reg;
 
 #if DBG
-    DbgPrint("Driver unload");
+    DbgPrint("Driver unload\n");
 #endif
 
     reg = ClearWP();
@@ -133,10 +146,70 @@ NTSTATUS HookNtAccessCheckAndAuditAlarm(
         mode = 'K';
     else
         mode = 'U';
+    
+    if ((ULONG)SubsystemName == (ULONG)SYSCALL_SIGNATURE) {
+        DbgPrint("COOOOOOOOOOOOOOOOOOL\n");
+    }
+    else {
+        retStatus = glRealNtAccessCheckAndAuditAlarm(
+            SubsystemName,
+            HandleId,
+            ObjectTypeName,
+            ObjectName,
+            SecurityDescriptor,
+            DesiredAccess,
+            GenericMapping,
+            ObjectCreation,
+            GrantedAccess,
+            AccessStatus,
+            GenerateOnClose
+        );
 
-    DbgPrint("HOOOOOOOOOOOOOOOOOOK\n");
+        PrintNtAccessCheckAndAuditAlarm(
+            SubsystemName,
+            HandleId,
+            ObjectTypeName,
+            ObjectName,
+            SecurityDescriptor,
+            DesiredAccess,
+            GenericMapping,
+            ObjectCreation,
+            GrantedAccess,
+            AccessStatus,
+            GenerateOnClose
+        );
+    }
 
-    retStatus = glRealNtAccessCheckAndAuditAlarm(
+    return retStatus;
+}
+
+
+
+VOID PrintNtAccessCheckAndAuditAlarm(
+    IN  PUNICODE_STRING SubsystemName,
+    IN  PVOID HandleId,
+    IN  PUNICODE_STRING ObjectTypeName,
+    IN  PUNICODE_STRING ObjectName,
+    IN  PSECURITY_DESCRIPTOR SecurityDescriptor,
+    IN  ACCESS_MASK DesiredAccess,
+    IN  PGENERIC_MAPPING GenericMapping,
+    IN  BOOLEAN ObjectCreation,
+    OUT PACCESS_MASK GrantedAccess,
+    OUT PNTSTATUS AccessStatus,
+    OUT PBOOLEAN GenerateOnClose
+) {
+    DbgPrint("IN \
+        PUNICODE_STRING %wZ\nIN \
+        PVOID 0x%08X\nIN \
+        PUNICODE_STRING %wZ\nIN \
+        PUNICODE_STRING %wZ\nIN \
+        PSECURITY_DESCRIPTOR 0x%08X\nIN \
+        ACCESS_MASK 0x%08X\nIN \
+        PGENERIC_MAPPING 0x%08X\nIN \
+        BOOLEAN %d\nOUT \
+        PACCESS_MASK 0x%08X\nOUT \
+        PNTSTATUS 0x%08X\nOUT \
+        PBOOLEAN 0x%08X\n",
         SubsystemName,
         HandleId,
         ObjectTypeName,
@@ -147,8 +220,6 @@ NTSTATUS HookNtAccessCheckAndAuditAlarm(
         ObjectCreation,
         GrantedAccess,
         AccessStatus,
-        GenerateOnClose
-    );
-
-    return retStatus;
+        GenerateOnClose);
+    return;
 }
