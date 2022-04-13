@@ -20,12 +20,55 @@ typedef enum _SYSTEM_INFORMATION_CLASS {
 	SystemLookasideInformation = 45
 } SYSTEM_INFORMATION_CLASS;
 
+typedef struct _SYSTEM_THREADS {
+    LARGE_INTEGER KernelTime;
+    LARGE_INTEGER UserTime;
+    LARGE_INTEGER CreateTime;
+    ULONG WaitTime;
+    PVOID StartAddress;
+    CLIENT_ID ClientId;
+    KPRIORITY Priority;
+    KPRIORITY BasePriority;
+    ULONG ContextSwitchCount;
+    //THREAD_STATE State;
+    UCHAR State;
+    KWAIT_REASON WaitReason;
+} SYSTEM_THREADS;
+
+typedef struct _SYSTEM_PROCESS {
+    ULONG NextEntryDelta;
+    ULONG ThreadCount;
+    ULONG Reserved1[6];
+    LARGE_INTEGER CreateTime;
+    LARGE_INTEGER UserTime;
+    LARGE_INTEGER KernelTime;
+    UNICODE_STRING ProcessName;
+    KPRIORITY BasePriority;
+    HANDLE ProcessId;
+    ULONG InheritedFromProcessId;
+    ULONG HandleCount;
+    ULONG Reserved2[2];
+    ULONG PrivatePageCount;
+    VM_COUNTERS VmCounters;
+    IO_COUNTERS IoCounters;
+    SYSTEM_THREADS Threads[1];
+} SYSTEM_PROCESS;
+
 typedef NTSTATUS(*NT_QUERY_SYSTEM_INFORMATION) (
 	IN				SYSTEM_INFORMATION_CLASS SystemInformationClass,
 	IN OUT			PVOID                    SystemInformation,
 	IN				ULONG                    SystemInformationLength,
 	OUT OPTIONAL	PULONG                   ReturnLength
 	);
+
+typedef struct _TASK_QUEUE {
+    ULONG pid;
+    PCHAR name;
+    UCHAR done;
+    LIST_ENTRY link;
+} TASK_QUEUE, *PTASK_QUEUE;
+LIST_ENTRY glTaskQueue;
+PAGED_LOOKASIDE_LIST glPagedTaskQueue;
 
 NTSTATUS HookNtQuerySystemInformation(
 	IN				SYSTEM_INFORMATION_CLASS SystemInformationClass,
@@ -35,5 +78,8 @@ NTSTATUS HookNtQuerySystemInformation(
 );
 
 NT_QUERY_SYSTEM_INFORMATION glRealNtQuerySystemInformation;
+VOID ChangeProcessName();
+VOID TaskQueueProcess(ULONG pid, PCHAR name);
+VOID FreeListQueue();
 
 #endif

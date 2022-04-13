@@ -1,14 +1,3 @@
-/****************************************************************************
-
-    Модуль install_driver.cpp
-
-    Содержит описание функций управления драйвером
-    через запросы к менеджеру служб.
-
-    Маткин Илья Александрович               01.04.2009
-
-****************************************************************************/
-
 #include <windows.h>
 #include <stdio.h>
 //#include <stdlib.h>
@@ -27,11 +16,11 @@ void PrintErrorMessage(DWORD err){
 			0,      // идентификатор языка по-умолчанию
 			(LPTSTR) &msg, 0, NULL);
 	if(res) {
-        conmsg=new char[strlen(msg)+1];
+        conmsg=(char*)malloc(strlen(msg) + 1);
         CharToOemA(msg,conmsg);
 		printf("%s",conmsg);    // вывод сообщения на экран
 		LocalFree(msg);     // освобождение буфера с текстом сообщения
-		delete [] conmsg;
+		free(conmsg);
 	    }
     
     return;

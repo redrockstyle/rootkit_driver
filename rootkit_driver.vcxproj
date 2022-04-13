@@ -185,6 +185,7 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="commad.c" />
     <ClCompile Include="init.c" />
     <ClCompile Include="rename_proc.c" />
   </ItemGroup>
@@ -195,6 +196,7 @@
     <Text Include="task2.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="command.h" />
     <ClInclude Include="cr0.h" />
     <ClInclude Include="rename_proc.h" />
   </ItemGroup>

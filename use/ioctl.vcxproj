@@ -97,7 +97,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="install_driver.cpp" />
+    <ClCompile Include="install_driver.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
