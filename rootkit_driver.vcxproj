@@ -187,6 +187,7 @@
   <ItemGroup>
     <ClCompile Include="file.c" />
     <ClCompile Include="init.c" />
+    <ClCompile Include="key.c" />
     <ClCompile Include="net.c" />
     <ClCompile Include="rename_proc.c" />
   </ItemGroup>
@@ -200,6 +201,7 @@
     <ClInclude Include="command.h" />
     <ClInclude Include="file.h" />
     <ClInclude Include="inc.h" />
+    <ClInclude Include="key.h" />
     <ClInclude Include="net.h" />
     <ClInclude Include="rename_proc.h" />
   </ItemGroup>

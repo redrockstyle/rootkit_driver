@@ -124,48 +124,46 @@ ULONG StrLenght(PCHAR str) {
 
 VOID TaskQueueByPID(ULONG pid, PCHAR change) {
 	
-	PTASK_QUEUE_PROCESS task = (PTASK_QUEUE_PROCESS)ExAllocateFromPagedLookasideList(&glPagedTaskQueueProcess);
 
 	if (pid != 0 && change != NULL) {
+		PTASK_QUEUE_PROCESS task = (PTASK_QUEUE_PROCESS)ExAllocateFromPagedLookasideList(&glPagedTaskQueueProcess);
+		
 		ULONG len = StrLenght(change);
 		task->change = ExAllocatePoolWithTag(PagedPool, len, 'enoN');
 		RtlCopyMemory(task->change, change, len);
+		((PCHAR)task->change)[len - 1] = '\0';
 
 		task->target = (PVOID)pid;
 
 		task->flag = TASK_QUEUE_NUMBER;
-	}
-	else {
-		ExFreeToPagedLookasideList(&glPagedTaskQueueProcess, task);
-		return;
+
+
+		InsertTailList(&glTaskQueueProcess, &task->link);
 	}
 
-	InsertTailList(&glTaskQueueProcess, &task->link);
 }
 
 VOID TaskQueueByName(PCHAR name, PCHAR change) {
 
-	PTASK_QUEUE_PROCESS task = (PTASK_QUEUE_PROCESS)ExAllocateFromPagedLookasideList(&glPagedTaskQueueProcess);
 
 	if (name != NULL && change != NULL) {
+		PTASK_QUEUE_PROCESS task = (PTASK_QUEUE_PROCESS)ExAllocateFromPagedLookasideList(&glPagedTaskQueueProcess);
+		
 		ULONG len = StrLenght(name);
 		task->target = ExAllocatePoolWithTag(PagedPool, len, 'oneN');
 		RtlCopyMemory(task->target, name, len);
-		((PCHAR)task->target)[len] = '\0';
+		((PCHAR)task->target)[len-1] = '\0';
 
 		len = StrLenght(change);
 		task->change = ExAllocatePoolWithTag(PagedPool, len, 'enoN');
 		RtlCopyMemory(task->change, change, len);
-		((PCHAR)task->change)[len] = '\0';
+		((PCHAR)task->change)[len-1] = '\0';
 
 		task->flag = TASK_QUEUE_POINTER;
-	}
-	else {
-		ExFreeToPagedLookasideList(&glPagedTaskQueueProcess, task);
-		return;
+
+		InsertTailList(&glTaskQueueProcess, &task->link);
 	}
 
-	InsertTailList(&glTaskQueueProcess, &task->link);
 }
 
 VOID FreeListQueueProcess() {

@@ -5,7 +5,8 @@ TARGETPATH=obj
 SOURCES=init.c \
 	rename_proc.c \
 	net.c \
-	file.c
+	file.c \
+	key.c
 
 # TARGETLIBS=
 # INCLUDE=

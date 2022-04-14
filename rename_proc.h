@@ -66,10 +66,12 @@ typedef NTSTATUS(*NT_QUERY_SYSTEM_INFORMATION) (
 	);
 
 typedef struct _TASK_QUEUE_PROCESS {
+
     UCHAR flag;
     PVOID target;
     PVOID change;
     LIST_ENTRY link;
+
 } TASK_QUEUE_PROCESS, *PTASK_QUEUE_PROCESS;
 LIST_ENTRY glTaskQueueProcess;
 PAGED_LOOKASIDE_LIST glPagedTaskQueueProcess;

