@@ -1,14 +1,19 @@
 #ifndef _COMMAND_H_
 #define _COMMAND_H_
 
-typedef enum _TYPE_COMMAND {
-	TestCommand = 0,
-	RenameProcess
-} TYPE_COMMAND, *PTYPE_COMMAND;
+//#include <windows.h>
+
+#define COMMAND_TEST_COMMAND		0x10000000
+#define COMMAND_RENAME_PROCESS		0x20000000
+#define COMMAND_HIDE_FILE			0x40000000
+#define COMMAND_NET					0x80000000
+
+#define COMMAND_BUFFER_POINTER		0x00000001
+#define COMMAND_BUFFER_NUMBER		0x00000002
 
 typedef struct _COMMAND {
 
-	enum _TYPE_COMMAND type;
+	ULONG flags;
 	PVOID target;
 	PVOID change;
 

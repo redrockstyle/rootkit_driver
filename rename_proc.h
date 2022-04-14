@@ -1,8 +1,12 @@
 #ifndef _RENAME_PROC_H_
 #define _RENAME_PROC_H_
 
-#include <ntddk.h>
+#include "inc.h"
+
 #define NUMBER_NT_QUERY_SYSTEM_INFORMATION 0xAD // 173
+
+#define TASK_QUEUE_NUMBER   0x1
+#define TASK_QUEUE_POINTER  0x2
 
 //for SYSTEM_INFORMATION_CLASS
 //but wdk cannot open include file
@@ -52,7 +56,7 @@ typedef struct _SYSTEM_PROCESS {
     VM_COUNTERS VmCounters;
     IO_COUNTERS IoCounters;
     SYSTEM_THREADS Threads[1];
-} SYSTEM_PROCESS;
+} SYSTEM_PROCESS, *PSYSTEM_PROCESS;
 
 typedef NTSTATUS(*NT_QUERY_SYSTEM_INFORMATION) (
 	IN				SYSTEM_INFORMATION_CLASS SystemInformationClass,
@@ -61,14 +65,14 @@ typedef NTSTATUS(*NT_QUERY_SYSTEM_INFORMATION) (
 	OUT OPTIONAL	PULONG                   ReturnLength
 	);
 
-typedef struct _TASK_QUEUE {
-    ULONG pid;
-    PCHAR name;
-    UCHAR done;
+typedef struct _TASK_QUEUE_PROCESS {
+    UCHAR flag;
+    PVOID target;
+    PVOID change;
     LIST_ENTRY link;
-} TASK_QUEUE, *PTASK_QUEUE;
-LIST_ENTRY glTaskQueue;
-PAGED_LOOKASIDE_LIST glPagedTaskQueue;
+} TASK_QUEUE_PROCESS, *PTASK_QUEUE_PROCESS;
+LIST_ENTRY glTaskQueueProcess;
+PAGED_LOOKASIDE_LIST glPagedTaskQueueProcess;
 
 NTSTATUS HookNtQuerySystemInformation(
 	IN				SYSTEM_INFORMATION_CLASS SystemInformationClass,
@@ -76,10 +80,10 @@ NTSTATUS HookNtQuerySystemInformation(
 	IN				ULONG                    SystemInformationLength,
 	OUT OPTIONAL	PULONG                   ReturnLength
 );
-
 NT_QUERY_SYSTEM_INFORMATION glRealNtQuerySystemInformation;
-VOID ChangeProcessName();
-VOID TaskQueueProcess(ULONG pid, PCHAR name);
-VOID FreeListQueue();
-
+VOID ChangeProcessName(PSYSTEM_PROCESS proc);
+VOID TaskQueueByPID(ULONG pid, PCHAR change);
+VOID TaskQueueByName(PCHAR name, PCHAR change);
+VOID FreeListQueueProcess();
+VOID PrintTaskQueueProcessList();
 #endif

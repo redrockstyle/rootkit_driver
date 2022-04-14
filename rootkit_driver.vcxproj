@@ -185,8 +185,9 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="commad.c" />
+    <ClCompile Include="file.c" />
     <ClCompile Include="init.c" />
+    <ClCompile Include="net.c" />
     <ClCompile Include="rename_proc.c" />
   </ItemGroup>
   <ItemGroup>
@@ -197,7 +198,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="command.h" />
-    <ClInclude Include="cr0.h" />
+    <ClInclude Include="file.h" />
+    <ClInclude Include="inc.h" />
+    <ClInclude Include="net.h" />
     <ClInclude Include="rename_proc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

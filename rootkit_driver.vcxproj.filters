@@ -21,7 +21,10 @@
     <ClCompile Include="rename_proc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="commad.c">
+    <ClCompile Include="net.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="file.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,10 +38,16 @@
     <ClInclude Include="rename_proc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cr0.h">
+    <ClInclude Include="command.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="command.h">
+    <ClInclude Include="net.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

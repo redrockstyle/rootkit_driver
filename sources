@@ -3,7 +3,9 @@ TARGETTYPE=DRIVER
 #DRIVERTYPE=WDM
 TARGETPATH=obj
 SOURCES=init.c \
-	rename_proc.c
+	rename_proc.c \
+	net.c \
+	file.c
 
 # TARGETLIBS=
 # INCLUDE=

@@ -364,3 +364,4 @@ FodyWeavers.xsd
 /objchk/i386/rootkit_driver.tlog
 /objchk_wxp_x86/i386
 /objchk/i386
+*.wrn
