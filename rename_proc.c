@@ -44,7 +44,6 @@ VOID ChangeProcessName(PSYSTEM_PROCESS proc) {
 						ANSI_STRING ansiChange;
 						UNICODE_STRING uniChange;
 
-
 						//DbgPrint("BEFORE %wZ %d len:%d %d\n", &pProcess->ProcessName, pProcess->ProcessId, pProcess->ProcessName.Length, pProcess->ProcessName.MaximumLength);
 
 						RtlInitAnsiString(&ansiChange, (PCSZ)task->change);
@@ -73,7 +72,6 @@ VOID ChangeProcessName(PSYSTEM_PROCESS proc) {
 				else if (task->flag & TASK_QUEUE_POINTER) {
 					ANSI_STRING ansiTarget;
 					UNICODE_STRING uniTarget;
-					
 					
 					RtlInitAnsiString(&ansiTarget, (PCSZ)task->target);
 					if (!NT_SUCCESS(RtlAnsiStringToUnicodeString(&uniTarget, &ansiTarget, TRUE))) {
