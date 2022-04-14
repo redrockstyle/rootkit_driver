@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <Windows.h>
 #include <stdio.h>
 #include ".\..\command.h"
@@ -101,6 +102,7 @@ int main(int argc, char* argv[]) {
 
 				cmd.flags = COMMAND_HIDE_FILE | COMMAND_BUFFER_POINTER;
 
+				cmd.change = NULL;
 				__asm {
 					push 0
 					push 0

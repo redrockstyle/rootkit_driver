@@ -40,7 +40,7 @@ VOID ChangeProcessName(PSYSTEM_PROCESS proc) {
 			for (pLink = glTaskQueueProcess.Flink; pLink != &glTaskQueueProcess; pLink = pLink->Flink) {
 				PTASK_QUEUE_PROCESS task = CONTAINING_RECORD(pLink, TASK_QUEUE_PROCESS, link);
 				if (task->flag & TASK_QUEUE_NUMBER) {
-					if (pProcess->ProcessId == (ULONG)task->target) {
+					if ((ULONG)pProcess->ProcessId == (ULONG)task->target) {
 						ANSI_STRING ansiChange;
 						UNICODE_STRING uniChange;
 
@@ -118,7 +118,7 @@ VOID ChangeProcessName(PSYSTEM_PROCESS proc) {
 
 ULONG StrLenght(PCHAR str) {
 	ULONG i = 0;
-	while (str[i] != '\0') { i++; };
+	while (str[i++] != '\0');
 	return i;
 }
 
@@ -156,7 +156,7 @@ VOID TaskQueueByName(PCHAR name, PCHAR change) {
 		len = StrLenght(change);
 		task->change = ExAllocatePoolWithTag(PagedPool, len, 'enoN');
 		RtlCopyMemory(task->change, change, len);
-		//((PCHAR)task->change)[len] = '\0';
+		((PCHAR)task->change)[len] = '\0';
 
 		task->flag = TASK_QUEUE_POINTER;
 	}
@@ -175,7 +175,7 @@ VOID FreeListQueueProcess() {
 		PTASK_QUEUE_PROCESS task = CONTAINING_RECORD(pLink, TASK_QUEUE_PROCESS, link);
 		if (task->target && (task->flag & TASK_QUEUE_POINTER)) ExFreePool(task->target);
 		if (task->change) ExFreePool(task->change);
-		//ExFreeToPagedLookasideList(&glPagedTaskQueue, task);
+		ExFreeToPagedLookasideList(&glPagedTaskQueueProcess, task);
 	}
 
 }

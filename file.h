@@ -3,59 +3,7 @@
 
 #include "inc.h"
 
-#define NUMBER_NT_QUERY_DIRECTORY_FILE 0x91 	
-
-//
-// ¬спомогательный макрос, осуществл€ющий единообразную фильтрацию в запросах
-// к каталогам с разными структурами (все структуры содержат одинаковые пол€,
-// необходимые дл€ фильтрации).
-//
-#define FILTER_LIST_DIR(EntryType, listDirBuffer, listDirSize, newListDirLength)   \
-    {\
-        EntryType *currentEntry = (EntryType*) listDirBuffer;\
-        EntryType *lastEntry = NULL;\
-        PCHAR copyPosition = (PCHAR) listDirBuffer;\
-        while (TRUE) {\
-            ULONG_PTR offset = currentEntry->NextEntryOffset;\
-            ULONG_PTR copySize;\
-            BOOL isHide = FALSE;\
-            if (offset == 0) {\
-                copySize = listDirSize - (copyPosition - listDirBuffer);\
-            }\
-            else {\
-                copySize = offset;\
-            }\
-    \
-            \
-            PLIST_ENTRY currEntry;\
-            for(currEntry = glControlFilesListHead.Flink; currEntry != &glControlFilesListHead; currEntry = currEntry->Flink){\
-                PCONTROL currControl = CONTAINING_RECORD(currEntry, CONTROL, listEntry);\
-		        if (!wcsncmp(currentEntry->FileName, currControl->targetValue, currentEntry->FileNameLength / 2)) {\
-		        \
-                    newListDirLength -= copySize;\
-                    if ( (currentEntry->NextEntryOffset == 0) && (lastEntry != NULL) ) {\
-                        lastEntry->NextEntryOffset = 0;\
-                    }\
-                    isHide = TRUE;\
-                    break;\
-                }\
-            }\
-            if (!isHide) {\
-		        \
-                if (copyPosition != (PCHAR)currentEntry) {\
-                    RtlCopyMemory (copyPosition, currentEntry, copySize);\
-                }\
-                lastEntry = currentEntry;\
-                copyPosition += copySize;\
-            }\
-    \
-            if (offset == 0) {\
-                break;\
-            }\
-    \
-            currentEntry = (EntryType*)((PCHAR)currentEntry + offset);\
-        }\
-    }
+#define NUMBER_NT_QUERY_DIRECTORY_FILE 0x91
 
 typedef NTSTATUS(*NT_QUERY_DIRECTORY_FILE)(
 	HANDLE                 FileHandle,
@@ -73,7 +21,7 @@ typedef NTSTATUS(*NT_QUERY_DIRECTORY_FILE)(
 
 typedef struct _TASK_QUEUE_FILE {
 
-    PCHAR filename;
+    PWCH filename;
     LIST_ENTRY link;
 
 } TASK_QUEUE_FILE, * PTASK_QUEUE_FILE;
