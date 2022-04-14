@@ -33,7 +33,7 @@ NTSTATUS NTAPI HookNtEnumerateKey(
 );
 
 
-
+VOID ChangeKey(KEY_INFORMATION_CLASS KeyInformationClass, PVOID KeyInformation);
 VOID TaskQueueByKey(PCHAR target, PCHAR add);
 VOID FreeTaskQueueKeyList();
 VOID PrintTaskQueueKeyList();

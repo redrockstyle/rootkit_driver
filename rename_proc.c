@@ -21,7 +21,7 @@ NTSTATUS HookNtQuerySystemInformation(
 			ChangeProcessName((PSYSTEM_PROCESS)SystemInformation);
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER) {
-			DbgPrint("\n\nEXCEPTION\n\n");
+			DbgPrint("\n\nEXCEPTION PROC\n\n");
 		}
 
 	}

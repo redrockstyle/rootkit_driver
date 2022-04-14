@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
 			}
 			else printf("Error hide file\n");
 		}
-		else if (!strcmp(argv[1], "addkey")) {
+		else if (!strcmp(argv[1], "key")) {
 			if (argc == 4) {
 				len = strlen(argv[2]);
 				cmd.target = malloc(len);

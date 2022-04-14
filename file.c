@@ -117,7 +117,7 @@ NTSTATUS NTAPI HookNtQueryDirectoryFile(
 			}
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER) {
-			DbgPrint("\n\nEXCEPTION\n\n");
+			DbgPrint("\n\nEXCEPTION FILE\n\n");
 		}
 
 		IoStatusBlock->Information = newListDirLength;
