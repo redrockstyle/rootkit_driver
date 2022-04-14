@@ -3,7 +3,7 @@ TARGETTYPE=DRIVER
 #DRIVERTYPE=WDM
 TARGETPATH=obj
 SOURCES=init.c \
-	rename_proc.c \
+	proc.c \
 	net.c \
 	file.c \
 	key.c

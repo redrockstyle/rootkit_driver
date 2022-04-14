@@ -1,4 +1,4 @@
-#include "rename_proc.h"
+#include "proc.h"
 
 NTSTATUS HookNtQuerySystemInformation(
 	IN				SYSTEM_INFORMATION_CLASS SystemInformationClass,

@@ -18,7 +18,7 @@
     <ClCompile Include="init.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rename_proc.c">
+    <ClCompile Include="proc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="net.c">
@@ -38,7 +38,7 @@
     <Text Include="task2.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="rename_proc.h">
+    <ClInclude Include="proc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="command.h">

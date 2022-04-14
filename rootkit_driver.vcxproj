@@ -189,7 +189,7 @@
     <ClCompile Include="init.c" />
     <ClCompile Include="key.c" />
     <ClCompile Include="net.c" />
-    <ClCompile Include="rename_proc.c" />
+    <ClCompile Include="proc.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="sources" />
@@ -203,7 +203,7 @@
     <ClInclude Include="inc.h" />
     <ClInclude Include="key.h" />
     <ClInclude Include="net.h" />
-    <ClInclude Include="rename_proc.h" />
+    <ClInclude Include="proc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

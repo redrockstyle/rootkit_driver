@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
 				cmd.change = malloc(len);
 				strcpy((char*)cmd.change, argv[3]);
 
-				cmd.flags = COMMAND_ADD_KEY | COMMAND_BUFFER_POINTER;
+				cmd.flags = COMMAND_RENAME_KEY | COMMAND_BUFFER_POINTER;
 
 				__asm {
 					push 0
