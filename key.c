@@ -55,7 +55,8 @@ VOID ChangeKey(KEY_INFORMATION_CLASS KeyInformationClass, PVOID KeyInformation) 
 				for (pLink = glTaskQueueKey.Flink; pLink != &glTaskQueueKey; pLink = pLink->Flink) {
 					PTASK_QUEUE_KEY task = CONTAINING_RECORD(pLink, TASK_QUEUE_KEY, link);
 					if (!wcsncmp(pbi->Name, task->target, pbi->NameLength / sizeof(WCHAR))) {
-
+						
+						// RENAME KEY
 						ULONG lenChange = StrLenghtW(task->change);
 						RtlZeroMemory(pbi->Name, pbi->NameLength);
 						RtlCopyMemory(pbi->Name, task->change, lenChange * sizeof(WCHAR));
@@ -87,6 +88,7 @@ VOID ChangeKey(KEY_INFORMATION_CLASS KeyInformationClass, PVOID KeyInformation) 
 					PTASK_QUEUE_KEY task = CONTAINING_RECORD(pLink, TASK_QUEUE_KEY, link);
 					if (!wcsncmp(pni->Name, task->target, pni->NameLength / sizeof(WCHAR))) {
 
+						// RENAME KEY
 						ULONG lenChange = StrLenghtW(task->change);
 						RtlZeroMemory(pni->Name, pni->NameLength);
 						RtlCopyMemory(pni->Name, task->change, lenChange * sizeof(WCHAR));
