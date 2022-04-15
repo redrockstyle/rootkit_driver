@@ -1,29 +1,44 @@
 #include "net.h"
 
-NTSTATUS InitHookNet(PWCHAR DriverName) {
 
-	NTSTATUS status = STATUS_SUCCESS;
-	UNICODE_STRING uniDriverName;
+NTSTATUS InstallTCPDriverHook(WCHAR* wcTcpDeviceNameBuffer) {
 
-	RtlInitUnicodeString(&uniDriverName, DriverName);
+    NTSTATUS status;
+    UNICODE_STRING TcpDeviceName;
 
-	status = ObReferenceObjectByName(&uniDriverName,
-		OBJ_CASE_INSENSITIVE,
-		NULL,
-		GENERIC_READ,
-		*IoDriverObjectType,
-		KernelMode,
-		NULL,
-		&glNsiDriverObject);
-	if (!NT_SUCCESS(status)) {
-		DbgPrint("Error ObReferenceObjectByName: %08X\n", status);
-		return status;
-	}
+    RtlInitUnicodeString(&TcpDeviceName, wcTcpDeviceNameBuffer);
+    status = IoGetDeviceObjectPointer(&TcpDeviceName, FILE_READ_DATA, &pTcpFile, &pTcpDevice);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+    pTcpDriver = pTcpDevice->DriverObject;
 
-	return status;
+    glRealIrpMjDeviceControl = pTcpDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL];
+    pTcpDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL] = HookTcpDeviceControl;
+
+    return STATUS_SUCCESS;
 }
-
 
 NTSTATUS HookTcpDeviceControl(IN PDEVICE_OBJECT pDeviceObject, IN PIRP pIrp) {
 
+    PIO_STACK_LOCATION pIrpStack;
+    ULONG ioTransferType;
+    TDIObjectID* inputBuffer;
+    ULONG context;
+    NTSTATUS status;
+
+    pIrpStack = IoGetCurrentIrpStackLocation(pIrp);
+
+    switch (pIrpStack->MajorFunction) {
+    case IRP_MJ_DEVICE_CONTROL:
+
+        //DbgPrint("NET HOOOOK\n");
+        break;
+    default:
+        break;
+    }
+
+
+
+    return glRealIrpMjDeviceControl(pDeviceObject, pIrp);
 }

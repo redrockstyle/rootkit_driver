@@ -5,19 +5,19 @@
 
 #define NUMBER_NT_QUERY_DIRECTORY_FILE 0x91
 
-typedef NTSTATUS(*NT_QUERY_DIRECTORY_FILE)(
-	HANDLE                 FileHandle,
-	HANDLE                 Event,
-	PIO_APC_ROUTINE        ApcRoutine,
-	PVOID                  ApcContext,
-	PIO_STATUS_BLOCK       IoStatusBlock,
-	PVOID                  FileInformation,
-	ULONG                  Length,
-	FILE_INFORMATION_CLASS FileInformationClass,
-	BOOLEAN                ReturnSingleEntry,
-	PUNICODE_STRING        FileName,
-	BOOLEAN                RestartScan
-	);
+//typedef NTSTATUS(*NT_QUERY_DIRECTORY_FILE)(
+//	HANDLE                 FileHandle,
+//	HANDLE                 Event,
+//	PIO_APC_ROUTINE        ApcRoutine,
+//	PVOID                  ApcContext,
+//	PIO_STATUS_BLOCK       IoStatusBlock,
+//	PVOID                  FileInformation,
+//	ULONG                  Length,
+//	FILE_INFORMATION_CLASS FileInformationClass,
+//	BOOLEAN                ReturnSingleEntry,
+//	PUNICODE_STRING        FileName,
+//	BOOLEAN                RestartScan
+//	);
 
 typedef struct _TASK_QUEUE_FILE {
 
@@ -43,9 +43,30 @@ NTSTATUS NTAPI HookNtQueryDirectoryFile(
 	BOOLEAN                RestartScan
 );
 
-NT_QUERY_DIRECTORY_FILE glRealNtQueryDirectoryFile;
+NTSTATUS NTAPI JmpNtQueryDirectoryFile(
+	HANDLE                 FileHandle,
+	HANDLE                 Event,
+	PIO_APC_ROUTINE        ApcRoutine,
+	PVOID                  ApcContext,
+	PIO_STATUS_BLOCK       IoStatusBlock,
+	PVOID                  FileInformation,
+	ULONG                  Length,
+	FILE_INFORMATION_CLASS FileInformationClass,
+	BOOLEAN                ReturnSingleEntry,
+	PUNICODE_STRING        FileName,
+	BOOLEAN                RestartScan
+);
+
+//NT_QUERY_DIRECTORY_FILE glRealNtQueryDirectoryFile;
+
+ULONG addressForJmpNtNtQueryDirectoryFile;
+UCHAR saveByteNtQueryDirectoryFile[5];
+
+volatile ULONG SyscallProcessedCount;
+
 
 VOID TaskQueueByFilename(PCHAR filename);
 VOID PrintTaskQueueFileList();
 VOID FreeListQueueFilename();
+
 #endif // !_FILE_H_

