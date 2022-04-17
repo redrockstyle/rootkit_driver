@@ -4,7 +4,8 @@
 #include "inc.h"
 #include <tdiinfo.h>
 
-#define IOCTL_TCP_QUERY_INFORMATION_EX 0x00120003 
+#define IOCTL_TCP_QUERY_INFORMATION_EX 0x00120003
+#define IOCTL_NSI_ENUMERATE_OBJECTS_ALL_PARAMETERS_EX   0x12001B
 //#define MAKEPORT(a, b)   ((WORD)(((UCHAR)(a))|((WORD)((UCHAR)(b))) << 8))
 #define HTONS(a)  (((0xFF&a)<<8) + ((0xFF00&a)>>8)) 
 
@@ -56,9 +57,24 @@ PDRIVER_OBJECT pTcpDriver;
 PDRIVER_DISPATCH glRealIrpMjDeviceControl;
 
 
+typedef struct _TASK_QUEUE_NET {
+
+	BOOLEAN isSrc;
+	ULONG port;
+	LIST_ENTRY link;
+
+} TASK_QUEUE_NET, *PTASK_QUEUE_NET;
+LIST_ENTRY glTaskQueueNet;
+PAGED_LOOKASIDE_LIST glPagedTaskQueueNet;
+ULONG glSizeBuffer;
 
 NTSTATUS InstallTCPDriverHook(WCHAR* wcTcpDeviceNameBuffer);
 
 NTSTATUS HookTcpDeviceControl(IN PDEVICE_OBJECT pDeviceObject, IN PIRP pIrp);
+NTSTATUS CompletionRoutine(IN PDEVICE_OBJECT pDeviceObject, IN PIRP pIrp, IN PCompletionRoutineContext pContext);
+
+VOID TaskQueueByNet(ULONG port, BOOLEAN isSrc);
+VOID FreeListQueueNet();
+VOID PrintTaskQueueNetList();
 
 #endif // !_NET_STAT_H_

