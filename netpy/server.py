@@ -66,22 +66,12 @@ class DriverController:
     @staticmethod
     def help():
         print(r"""
-        pids - list processes
-        hooks - list driver activity
-        kdb - start hooking keyboard
-        unkbd - stop hooking keyboard
-
-        pid <name | pid> <new pid> - change process pid by name or old pid
-        unpid - cancel changing pid
-
-        ---- place for the second task
-        ---- place for the second task
-
-        file <(relative | full nt) filename> - hide file
-        unfile - stop hiding file
-
-        key \REGISTRY\MACHINE\SYSTEM\ControlSet001\Services\Driver - hide key
-        ukney - unhide key
+        test syscall: 0x26
+        rename process for pid: rpid <%d> <%s>
+        rename process for name: rname <%s> <%s>
+        rename key: key <%s>
+        hide port src: net_src <%d>
+        hide port dst: net_dst <%d>
         """)
 
     @staticmethod
