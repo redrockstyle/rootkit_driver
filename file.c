@@ -97,7 +97,7 @@ NTSTATUS NTAPI HookNtQueryDirectoryFile(
 		FileName,
 		RestartScan
 	);
-
+	
 	if (NT_SUCCESS(retStatus)) {
 
 		listDirBuffer = FileInformation;

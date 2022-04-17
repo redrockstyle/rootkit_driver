@@ -244,7 +244,7 @@ ULONG_PTR HookNtCreateIoCompletion(
         //PrintTaskQueueProcessList();
         //PrintTaskQueueFileList();
         //PrintTaskQueueKeyList();
-        PrintTaskQueueNetList();
+        //PrintTaskQueueNetList();
     }
     else {
         retStatus = glRealNtCreateIoCompletion(
