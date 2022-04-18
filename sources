@@ -6,7 +6,8 @@ SOURCES=init.c \
 	proc.c \
 	file.c \
 	key.c \
-	net.c
+	net.c \
+	keyboard.c
 
 # TARGETLIBS=
 # INCLUDE=

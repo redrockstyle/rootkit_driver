@@ -188,6 +188,7 @@
     <ClCompile Include="file.c" />
     <ClCompile Include="init.c" />
     <ClCompile Include="key.c" />
+    <ClCompile Include="keyboard.c" />
     <ClCompile Include="net.c" />
     <ClCompile Include="proc.c" />
   </ItemGroup>
@@ -202,6 +203,7 @@
     <ClInclude Include="file.h" />
     <ClInclude Include="inc.h" />
     <ClInclude Include="key.h" />
+    <ClInclude Include="keyboard.h" />
     <ClInclude Include="net.h" />
     <ClInclude Include="proc.h" />
   </ItemGroup>

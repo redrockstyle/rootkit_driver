@@ -366,3 +366,4 @@ FodyWeavers.xsd
 /objchk/i386
 *.wrn
 /netpy/.idea
+*.bak

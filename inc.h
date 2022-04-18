@@ -9,5 +9,6 @@
 #include <devioctl.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <ntddkbd.h>
 
 #endif // !_INC_H_
